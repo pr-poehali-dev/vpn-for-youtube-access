@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +21,10 @@ const Index = () => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const [favorites, setFavorites] = useState<string[]>(['usa-ny', 'uk-london']);
-  const [downloadSpeed] = useState(0);
-  const [uploadSpeed] = useState(0);
-  const [connectionTime] = useState(0);
+  const [downloadSpeed, setDownloadSpeed] = useState(0);
+  const [uploadSpeed, setUploadSpeed] = useState(0);
+  const [connectionTime, setConnectionTime] = useState(0);
+  const [totalData, setTotalData] = useState(0);
 
   const servers: Server[] = [
     { id: 'usa-ny', country: 'США', city: 'Нью-Йорк', flag: '🇺🇸', ping: 45, load: 32, premium: false },
@@ -36,6 +37,27 @@ const Index = () => {
     { id: 'ca-toronto', country: 'Канада', city: 'Торонто', flag: '🇨🇦', ping: 78, load: 49, premium: false },
   ];
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (connectionStatus === 'connected') {
+      interval = setInterval(() => {
+        setConnectionTime(prev => prev + 1);
+        
+        const newDownload = Math.random() * 50 + 50;
+        const newUpload = Math.random() * 20 + 10;
+        setDownloadSpeed(Math.round(newDownload * 10) / 10);
+        setUploadSpeed(Math.round(newUpload * 10) / 10);
+        
+        setTotalData(prev => prev + (newDownload + newUpload) / 8);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [connectionStatus]);
+
   const handleConnect = () => {
     if (connectionStatus === 'disconnected') {
       setConnectionStatus('connecting');
@@ -47,6 +69,10 @@ const Index = () => {
       }, 2000);
     } else {
       setConnectionStatus('disconnected');
+      setConnectionTime(0);
+      setDownloadSpeed(0);
+      setUploadSpeed(0);
+      setTotalData(0);
     }
   };
 
@@ -209,29 +235,34 @@ const Index = () => {
 
         {connectionStatus === 'connected' && (
           <Card className="p-6 backdrop-blur-xl bg-card/50 border-2 border-primary/20 animate-fade-in">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div className="text-center space-y-1">
-                <div className="flex items-center justify-center gap-2 text-accent">
+                <div className="flex items-center justify-center gap-2 text-green-500">
                   <Icon name="ArrowDown" size={20} />
                   <span className="text-2xl font-bold">{downloadSpeed}</span>
-                  <span className="text-sm">Мбит/с</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Загрузка</p>
+                <p className="text-xs text-muted-foreground">Мбит/с ↓</p>
               </div>
               <div className="text-center space-y-1">
-                <div className="flex items-center justify-center gap-2 text-accent">
+                <div className="flex items-center justify-center gap-2 text-blue-500">
                   <Icon name="ArrowUp" size={20} />
                   <span className="text-2xl font-bold">{uploadSpeed}</span>
-                  <span className="text-sm">Мбит/с</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Выгрузка</p>
+                <p className="text-xs text-muted-foreground">Мбит/с ↑</p>
               </div>
               <div className="text-center space-y-1">
                 <div className="flex items-center justify-center gap-2 text-accent">
                   <Icon name="Clock" size={20} />
                   <span className="text-2xl font-bold">{formatTime(connectionTime)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Время подключения</p>
+                <p className="text-xs text-muted-foreground">Время</p>
+              </div>
+              <div className="text-center space-y-1">
+                <div className="flex items-center justify-center gap-2 text-purple-500">
+                  <Icon name="HardDrive" size={20} />
+                  <span className="text-2xl font-bold">{(totalData / 1024).toFixed(1)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">ГБ трафик</p>
               </div>
             </div>
           </Card>
